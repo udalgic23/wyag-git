@@ -129,7 +129,6 @@ def repo_create(path):
 
     return repo
 
-
 argsp = argsubparsers.add_parser("init", help="Initialize a new empty repository.")
 argsp.add_argument("path", metavar="directory", nargs="?", default=".", help="Where to create the repository.")
 

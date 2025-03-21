@@ -12,8 +12,8 @@ import zlib # Data compression
 
 
 argparser = argparse.ArgumentParser(description="Content Tracker")
-sub_parsers = argparser.add_subparsers(title="Commands", dest="command") 
-sub_parsers.required = True
+argsubparsers = argparser.add_subparsers(title="Commands", dest="command") 
+argsubparsers.required = True
 
 def main(argv=sys.argv[1:]):
     args = argparser.parse_args(argv)
@@ -92,7 +92,7 @@ def repo_default_config():
     ret = configparser.ConfigParser()
     
     ret.add_section("core")
-    ret.set("core", "repositoryformatversion", 0)
+    ret.set("core", "repositoryformatversion", "0")
     ret.set("core", "filemode", "false")
     ret.set("core", "bare", "false")
 

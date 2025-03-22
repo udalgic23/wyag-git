@@ -153,7 +153,7 @@ def repo_find(path=".", required=True):
     return repo_find(parent, required)
 
 
-def GitObject:
+class GitObject:
     
     def __init__(self, data=None):
         if data != None:
@@ -199,7 +199,7 @@ def object_read(repo, sha):
         return c(raw[y+1:])
 
 
-def write_object(obj, repo=None):
+def object_write(obj, repo=None):
     data = obj.serialize()
 
     result = obj.fmt + b" " + str(len(data)).encode() + b"\x00" + data
@@ -228,7 +228,7 @@ class GitBlob(GitObject):
 
 argsp = argsubparsers.add_parser("cat-file", help="Provide content of repository objects")
 argsp.add_argument("type", metavar="type", choices=["blob", "commit", "tag", "tree"], help="Specify the type")
-argps.add_argument("object", metavar="object", help="Object to display")
+argsp.add_argument("object", metavar="object", help="Object to display")
 
 
 def cmd_cat_file(args):
@@ -245,6 +245,36 @@ def object_find(repo, name, fmt=None, follow=True):
     return name
 
 
+argsp = argsubparsers.add_parser("hash-object", help="Compute object ID and optionally creates a blob from a file")
+argsp.add_argument("-t", metavar="type", dest="type", choices=["blob", "tag", "commit", "tree"], default="blob", help="Specify type")
+argsp.add_argument("-w", dest="write", action="store_true", help="Actually write the object into the database")
+argsp.add_argument("path", help="Read object from <file>")
+
+def cmd_hash_object(args):
+    
+    if args.write:
+        repo = repo_find()
+    else:
+        repo = None
+
+    with open(args.path, "rb") as fd:
+        sha = object_hash(fd, args.type.decode(), repo)
+        print(sha)
+
+
+def object_hash(fd, fmt, repo=None):
+    
+    data = fd.read()
+
+    match fmt:
+        case "blob"     : obj = GitBlob(data)
+        case "commit"   : obj = GitCommit(data)
+        case "tree"     : obj = GitTree(data)
+        case "tag"      : obj = GitTag(data)
+        case _          : raise Exception(f"Unknown type {fmt}!")
+
+    return object_write(obj, repo)
+    
 
 
 

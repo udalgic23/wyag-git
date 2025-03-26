@@ -384,9 +384,41 @@ def log_graphviz(repo, sha, seen):
         log_graphviz(repo, p, seen)
 
 
+class GitTreeLeaf:
+    def __init__(self, mode, path, sha):
+        self.mode = mode
+        self.path = path
+        self.sha = sha
 
 
+def tree_parse_one(raw, start=0):
+    x = raw.find(b" ", start)
+    assert x-start==5 or x-start==6
+    mode = raw[start:x]
 
+    if len(mode) == 5:
+        mode = b"0" + mode
+    
+    y = raw.find(b"0x00", x)
+    path = raw[x+1:y]
+
+    raw_sha = int.from_bytes(raw[y+1:y+21], "big")
+    sha = format(raw_sha, "040x")
+
+    return y+21, GitTreeLeaf(mode, path.decode("utf8"), sha)
+
+
+def tree_parse(raw):
+    pos = 0
+    maxx = len(raw)
+    ret = list()
+
+    while pos < maxx:
+        pos, data = tree_parse_one(raw, pos)
+        ret.append(data)
+
+    return ret
+    
 
 
 

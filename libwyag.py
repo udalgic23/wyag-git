@@ -399,7 +399,7 @@ def tree_parse_one(raw, start=0):
     if len(mode) == 5:
         mode = b"0" + mode
     
-    y = raw.find(b"0x00", x)
+    y = raw.find(b"\x00", x)
     path = raw[x+1:y]
 
     raw_sha = int.from_bytes(raw[y+1:y+21], "big")
@@ -435,9 +435,9 @@ def tree_serialize(obj):
         ret += i.mode
         ret += b" "
         ret += i.path.encode("utf8")
-        ret += b"\00"
+        ret += b"\x00"
         sha = int(i.sha, 16)
-        ret += int.to_bytes(sha, byteorder="big")
+        ret += sha.to_bytes(sha, byteorder="big")
     return ret
 
 
@@ -481,7 +481,7 @@ def ls_tree(repo, ref, recursive=None, prefix=""):
             case _      : raise Exception(f"Weird tree leaf mode {item.mode}")
 
         if not (recursive and type=='tree'):
-            print(f"{'0' * (6 - len(item.mode)) + item.mode.decode("ascii")} {type} {item.sha}\t{os.path.join(prefix, item.path)}")
+            print(f"{'0' * (6 - len(item.mode)) + item.mode.decode("ascii")} {item_type} {item.sha}\t{os.path.join(prefix, item.path)}")
         else:
             ls_tree(repo, item.sha, recursive, os.path.join(prefix, item.path))
 

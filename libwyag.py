@@ -242,7 +242,33 @@ def cat_file(repo, obj, fmt=None):
 
 
 def object_find(repo, name, fmt=None, follow=True):
-    return name
+    sha = object_resolve(repo, name)
+    
+    if not sha:
+        raise Exception(f"No such reference {name}.")
+
+    if len(sha) > 1:
+        raise Exception("Ambiguous reference {name}: Candidates are:\n - {'\n - '.join(sha)}.")
+
+    sha = sha[0]
+    if not fmt:
+        return sha
+
+    while True:
+        obj = object_read(repo, sha)
+
+        if obj.fmt == fmt:
+            return sha
+        
+        if not follow:
+            return None
+
+        if obj.fmt == b"tag":
+            sha = obj.kvlm[b"object"].decode("ascii")
+        elif obj.fmt == b"commit" and fmt == b"tree":
+            sha = obj.kvlm[b"tree"].decode("ascii")
+        else:
+            return None
 
 
 argsp = argsubparsers.add_parser("hash-object", help="Compute object ID and optionally creates a blob from a file")
@@ -616,16 +642,52 @@ def ref_create(repo, ref_name, sha):
         fp.write(sha + "\n")
 
 
+def object_resolve(repo, name):
 
+    candidates = list()
+    hashRE = re.compile(r"[0-9a-fA-F]{4,40}$")
 
+    if not name.strip():
+        return None
 
+    if name == "HEAD":
+        return [ref_resolve(repo, "HEAD")]
+    
+    if hashRE.match(name):
+        name = name.lower()
 
+        prefix = name[0:2]
+        path = repo_dir(repo, "objects", prefix, mkdir=False)
 
+        if os.path.isdir(path):
+            rem = name[2:]
+            for f in os.listdir(path):
+                if f.startswith(rem):
+                    candidates.append(prefix + f)
 
+    as_tag = ref_resolve(repo, "refs/tags/" + name)
+    if as_tag:
+        candidates.append(as_tag)
 
+    as_branch = ref_resolve(repo, "repo/heads/" + name)
+    if as_branch:
+        candidates.append(as_branch)
 
+    return candidates
 
+argsp = argsubparsers.add_parser("rev-parse",help="Parse revision (or other objects) identifiers")
+argsp.add_argument("--wyag-type", metavar="type",dest="type",choices=["blob", "commit", "tag", "tree"],default=None,help="Specify the expected type")
+argsp.add_argument("name", help="The name to parse")
 
+def cmd_rev_parse(args):
+    if args.type:
+        fmt = args.type.encode()
+    else:
+        fmt = None
+
+    repo = repo_find()
+
+    print (object_find(repo, args.name, fmt, follow=True))
 
 
 
